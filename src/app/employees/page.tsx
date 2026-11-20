@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import * as XLSX from 'xlsx';
-import { ArrowLeft, FileSpreadsheet, LoaderCircle, Plus, RefreshCw, Search, UserRound, UserX, Users, Upload, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, LoaderCircle, Plus, RefreshCw, Search, UserRound, UserX, Users, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 type Employee = {
