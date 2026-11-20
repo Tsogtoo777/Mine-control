@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { ArrowLeft, LoaderCircle, Plus, RefreshCw, Search, UserRound, UserX, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -13,7 +13,7 @@ type Employee = {
   is_active: boolean;
 };
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%', boxSizing: 'border-box', background: '#0b1010', color: '#f5f5f0',
   border: '1px solid #303939', borderRadius: 9, padding: '11px 12px', outline: 'none',
 };
