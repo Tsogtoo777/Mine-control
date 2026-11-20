@@ -5,9 +5,10 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isSetup = request.nextUrl.pathname === '/setup';
 
   if (!url || !key) {
-    return NextResponse.redirect(new URL('/setup', request.url));
+    return isSetup ? response : NextResponse.redirect(new URL('/setup', request.url));
   }
 
   const supabase = createServerClient(url, key, {
@@ -28,7 +29,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isLogin = request.nextUrl.pathname === '/login';
-  const isSetup = request.nextUrl.pathname === '/setup';
 
   if (!data?.claims && !isLogin && !isSetup) {
     return NextResponse.redirect(new URL('/login', request.url));
