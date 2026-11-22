@@ -61,7 +61,7 @@ export default function DashboardClient() {
     const [p,h,w]=await Promise.all([db.from('production_records').select('id,shift_id,volume_m3,status,measured_at,material').in('shift_id',ids).neq('status','voided').order('measured_at',{ascending:false}).limit(500),db.from('haul_records').select('id,shift_id,trip_count,status,departed_at').in('shift_id',ids).neq('status','voided').order('departed_at',{ascending:false}).limit(500),db.from('work_records').select('id,shift_id,volume_m3,status,started_at').in('shift_id',ids).neq('status','voided').order('started_at',{ascending:false}).limit(500)]);
     if(cancelled)return;const err=p.error||h.error||w.error;if(err)setLoadError(err.message);setProduction((p.data||[]) as Rec[]);setHauls((h.data||[]) as Rec[]);setWorks((w.data||[]) as Rec[]);setLoading(false);
   }void load();return()=>{cancelled=true;};},[period,shiftFilter]);
-  const shiftMap=useMemo(()=>new Map(shifts.map(s=>[s.id,s])),[shifts]);
+  const shiftMap=useMemo(()=>new globalThis.Map(shifts.map(s=>[s.id,s])),[shifts]);
   const totalProduction=production.reduce((a,r)=>a+Number(r.volume_m3||0),0);
   const today=localDay(new Date());
   const todayProduction=production.filter(r=>shiftMap.get(r.shift_id)?.shift_date===today).reduce((a,r)=>a+Number(r.volume_m3||0),0);
