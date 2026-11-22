@@ -59,6 +59,10 @@ export default function MineMapPage(){
   <section style={box}><h2 style={{fontSize:15,margin:'0 0 14px'}}>Зураглал үүсгэх</h2>
    <label style={{display:'grid',gap:7,fontSize:12,color:'#aeb9b6',marginBottom:12}}>Объектын төрөл<select style={field} value={mode} onChange={e=>{setMode(e.target.value as 'block'|'face');setDraft([]);}}><option value="block">Блок</option><option value="face">Мөргөцөг</option></select></label>
    <label style={{display:'grid',gap:7,fontSize:12,color:'#aeb9b6',marginBottom:14}}>Сонгох<select style={field} value={selected} onChange={e=>{setSelected(e.target.value);setDraft([]);}}><option value="">Сонгох...</option>{options.map(o=><option key={o.id} value={o.id}>{o.label}</option>)}</select></label>
+   {!loading&&options.length===0&&<div style={{padding:12,marginBottom:12,border:'1px solid #66521c',borderRadius:9,background:'#241f10',color:'#e8d28a',fontSize:12,lineHeight:1.6}}>
+    {mode==='block'?'Одоогоор идэвхтэй блок бүртгээгүй байна.':'Одоогоор идэвхтэй мөргөцөг бүртгээгүй байна.'}
+    <div style={{marginTop:8}}><a href="/mine-areas" style={{color:'#f4c62f',fontWeight:800}}>Блок, мөргөцөг бүртгэх →</a></div>
+   </div>}
    <div style={{display:'flex',gap:7,alignItems:'center',color:'#c4cfca',fontSize:12,marginBottom:12}}><MousePointer2 size={15} color="#f4c62f"/> {draft.length} цэг тэмдэглэсэн</div>
    <button onClick={()=>setDraft(p=>p.slice(0,-1))} disabled={!draft.length||saving} style={{...field,display:'flex',gap:8,alignItems:'center',justifyContent:'center',marginBottom:8,cursor:'pointer',opacity:draft.length?1:.45}}><Undo2 size={15}/> Сүүлийн цэг буцаах</button>
    <button onClick={()=>setDraft([])} disabled={!draft.length||saving} style={{...field,display:'flex',gap:8,alignItems:'center',justifyContent:'center',marginBottom:8,cursor:'pointer',opacity:draft.length?1:.45}}><Eraser size={15}/> Шинээр эхлэх</button>
