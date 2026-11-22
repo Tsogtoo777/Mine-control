@@ -5,7 +5,7 @@ import { ArrowLeft, Download, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { createClient } from '@/lib/supabase/client';
 
-type Shift={id:string;shift_date:string;shift_kind:'day'|'night'};
+type Shift={id:string;shift_date:string;shift_kind:'day'|'night';starts_at:string;ends_at:string};
 type Equipment={id:string;equipment_code:string};
 type Employee={id:string;full_name:string};
 type Area={id:string;area_name:string};
@@ -23,6 +23,7 @@ const materialName=(v:string)=>v==='ore'?'Хүдэр':v==='waste'?'Хөрс':'Б
 const shiftName=(v:string)=>v==='day'?'Өдөр':'Шөнө';
 const fmt=(v:string|null)=>v?new Intl.DateTimeFormat('mn-MN',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v)):'';
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar'}).format(new Date());
+const localDate=(value:string)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value));
 
 export default function ReportsPage(){
  const db=useMemo(()=>createClient(),[]);
@@ -31,7 +32,7 @@ export default function ReportsPage(){
  const [from,setFrom]=useState(()=>today().slice(0,8)+'01');const [to,setTo]=useState(today());const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [exporting,setExporting]=useState(false);
  const load=useCallback(async()=>{setLoading(true);setError('');if(!db){setError('Supabase тохиргоо олдсонгүй.');setLoading(false);return;}
   const [s,e,emp,a,b,f,w,p,h,m,pl]=await Promise.all([
-   db.from('shifts').select('id,shift_date,shift_kind').order('shift_date',{ascending:false}).limit(3000),
+   db.from('shifts').select('id,shift_date,shift_kind,starts_at,ends_at').order('shift_date',{ascending:false}).limit(3000),
    db.from('equipment').select('id,equipment_code').order('equipment_code'),
    db.from('employees').select('id,full_name').order('full_name'),
    db.from('mine_areas').select('id,area_name').order('area_name'),
@@ -50,10 +51,12 @@ export default function ReportsPage(){
  useEffect(()=>{void load();},[load]);
  const shiftMap=useMemo(()=>new Map(shifts.map(x=>[x.id,x])),[shifts]);const equipMap=useMemo(()=>new Map(equipment.map(x=>[x.id,x.equipment_code])),[equipment]);const empMap=useMemo(()=>new Map(employees.map(x=>[x.id,x.full_name])),[employees]);const areaMap=useMemo(()=>new Map(areas.map(x=>[x.id,x.area_name])),[areas]);const blockMap=useMemo(()=>new Map(blocks.map(x=>[x.id,x.block_code])),[blocks]);const faceMap=useMemo(()=>new Map(faces.map(x=>[x.id,x])),[faces]);
  const inRange=(d:string)=>d>=from&&d<=to;
- const workRows=works.filter(x=>inRange(x.started_at.slice(0,10)));
- const productionRows=production.filter(x=>inRange(x.measured_at.slice(0,10)));
- const haulRows=hauls.filter(x=>inRange(x.departed_at.slice(0,10)));
- const maintenanceRows=maintenance.filter(x=>inRange(x.reported_at.slice(0,10)));
+ const inTimestampRange=(value:string)=>inRange(localDate(value));
+ // Хүчингүй болгосон бичлэгүүд тайлангийн дүн, Excel экспортод орохгүй.
+ const workRows=works.filter(x=>x.status!=='voided'&&inTimestampRange(x.started_at));
+ const productionRows=production.filter(x=>x.status!=='voided'&&inTimestampRange(x.measured_at));
+ const haulRows=hauls.filter(x=>x.status!=='voided'&&inTimestampRange(x.departed_at));
+ const maintenanceRows=maintenance.filter(x=>x.status!=='voided'&&inTimestampRange(x.reported_at));
  const planRows=plans.filter(x=>inRange(x.plan_date));
  const planActual=new Map<string,number>();for(const p of productionRows){const s=shiftMap.get(p.shift_id);if(!s||!p.block_id)continue;const k=[s.shift_date,s.shift_kind,p.block_id,p.material].join('|');planActual.set(k,(planActual.get(k)||0)+Number(p.volume_m3||0));}
  const totalVolume=productionRows.reduce((n,x)=>n+Number(x.volume_m3||0),0);const totalTrips=haulRows.reduce((n,x)=>n+Number(x.trip_count||0),0);
@@ -62,10 +65,10 @@ export default function ReportsPage(){
  async function exportExcel(){setExporting(true);setError('');
   try{
    const wb=XLSX.utils.book_new();
-   const shiftRows=shifts.filter(s=>inRange(s.shift_date)).map(s=>({Огноо:s.shift_date,Ээлж:shiftName(s.shift_kind),Эхлэх:fmt(s.id?null:null), 'Ээлжийн ID':s.id}));
-   const workSheet=workRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.face_id?faceMap.get(r.face_id):null;return {'Бүртгэлийн №':r.record_no,Огноо:s?.shift_date||r.started_at.slice(0,10),Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id||'')||'',Оператор:empMap.get(r.operator_id||'')||'',Блок:blockMap.get(r.block_id||'')||'',Мөргөцөг:face?.face_code||'',Материал:materialName(r.material),Ажлын_төрөл:r.work_type,Эхэлсэн:fmt(r.started_at),Дууссан:fmt(r.ended_at),Хэмжээ_м3:Number(r.volume_m3||0),Тайлбар:r.notes||'',Төлөв:r.status};});
-   const productionSheet=productionRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.face_id?faceMap.get(r.face_id):null;return {Огноо:s?.shift_date||r.measured_at.slice(0,10),Ээлж:s?shiftName(s.shift_kind):'',Блок:blockMap.get(r.block_id||'')||'',Мөргөцөг:face?.face_code||'',Материал:materialName(r.material),Хэмжээ_м3:Number(r.volume_m3||0),Бүртгэсэн_цаг:fmt(r.measured_at),Төлөв:r.status};});
-   const haulSheet=haulRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.source_face_id?faceMap.get(r.source_face_id):null;return {Огноо:s?.shift_date||r.departed_at.slice(0,10),Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id)||'',Материал:materialName(r.material),Ачилтын_мөргөцөг:face?.face_code||'',Буулгах_цэг:r.destination_name,Рейс:Number(r.trip_count),Гарсан_цаг:fmt(r.departed_at),Ирсэн_цаг:fmt(r.arrived_at),Төлөв:r.status};});
+   const shiftRows=shifts.filter(s=>inRange(s.shift_date)).map(s=>({Огноо:s.shift_date,Ээлж:shiftName(s.shift_kind),Эхлэх:fmt(s.starts_at),Дуусах:fmt(s.ends_at), 'Ээлжийн ID':s.id}));
+   const workSheet=workRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.face_id?faceMap.get(r.face_id):null;return {'Бүртгэлийн №':r.record_no,Огноо:s?.shift_date||localDate(r.started_at),Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id||'')||'',Оператор:empMap.get(r.operator_id||'')||'',Блок:blockMap.get(r.block_id||'')||'',Мөргөцөг:face?.face_code||'',Материал:materialName(r.material),Ажлын_төрөл:r.work_type,Эхэлсэн:fmt(r.started_at),Дууссан:fmt(r.ended_at),Хэмжээ_м3:Number(r.volume_m3||0),Тайлбар:r.notes||'',Төлөв:r.status};});
+   const productionSheet=productionRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.face_id?faceMap.get(r.face_id):null;return {Огноо:s?.shift_date||localDate(r.measured_at),Ээлж:s?shiftName(s.shift_kind):'',Блок:blockMap.get(r.block_id||'')||'',Мөргөцөг:face?.face_code||'',Материал:materialName(r.material),Хэмжээ_м3:Number(r.volume_m3||0),Бүртгэсэн_цаг:fmt(r.measured_at),Төлөв:r.status};});
+   const haulSheet=haulRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.source_face_id?faceMap.get(r.source_face_id):null;return {Огноо:s?.shift_date||localDate(r.departed_at),Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id)||'',Материал:materialName(r.material),Ачилтын_мөргөцөг:face?.face_code||'',Буулгах_цэг:r.destination_name,Рейс:Number(r.trip_count),Гарсан_цаг:fmt(r.departed_at),Ирсэн_цаг:fmt(r.arrived_at),Төлөв:r.status};});
    const maintenanceSheet=maintenanceRows.map(r=>({Техник:equipMap.get(r.equipment_id)||'',Мэдээлсэн:fmt(r.reported_at),Эвдрэлийн_төрөл:r.fault_category,Тайлбар:r.description,Засвар_эхэлсэн:fmt(r.repair_started_at),Засвар_дууссан:fmt(r.repair_finished_at),Ашиглалтад_буцаасан:fmt(r.returned_at),Төлөв:r.status}));
    const planSheet=planRows.map(r=>{const actual=planActual.get([r.plan_date,r.shift_kind,r.block_id||'',r.material].join('|'))||0;return {Огноо:r.plan_date,Ээлж:shiftName(r.shift_kind),Талбай:areaMap.get(r.area_id||'')||'',Блок:blockMap.get(r.block_id||'')||'',Материал:materialName(r.material),Төлөвлөсөн_м3:Number(r.planned_volume_m3),Бодит_м3:actual,Зөрүү_м3:Number(r.planned_volume_m3)-actual,Биелэлт_хувь:Number(r.planned_volume_m3)>0?Number((actual/Number(r.planned_volume_m3)*100).toFixed(1)):0};});
    const summary=[{Үзүүлэлт:'Олборлолт',Нийт:totalVolume,Нэгж:'м³'},{Үзүүлэлт:'Тээвэрлэлт',Нийт:totalTrips,Нэгж:'рейс'},{Үзүүлэлт:'Төлөвлөгөө',Нийт:totalPlan,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний бодит гүйцэтгэл',Нийт:totalPlanActual,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний биелэлт',Нийт:totalPlan?Number((totalPlanActual/totalPlan*100).toFixed(1)):0,Нэгж:'%'},{Үзүүлэлт:'Уулын ажлын бүртгэл',Нийт:workRows.length,Нэгж:'бүртгэл'},{Үзүүлэлт:'Засварын бүртгэл',Нийт:maintenanceRows.length,Нэгж:'бүртгэл'}];
