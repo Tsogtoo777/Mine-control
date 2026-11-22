@@ -16,6 +16,8 @@ type Production={id:string;shift_id:string;block_id:string|null;face_id:string|n
 type Haul={id:string;shift_id:string;equipment_id:string;material:string;source_face_id:string|null;destination_name:string;trip_count:number;departed_at:string;arrived_at:string|null;status:string};
 type Maintenance={id:string;equipment_id:string;reported_at:string;fault_category:string;description:string;repair_started_at:string|null;repair_finished_at:string|null;returned_at:string|null;status:string};
 type Plan={id:string;plan_date:string;shift_kind:string;area_id:string|null;block_id:string|null;material:string;planned_volume_m3:number};
+type Drill={id:string;shift_id:string;equipment_id:string;operator_id:string|null;block_id:string|null;face_id:string|null;drilled_holes:number;drilled_meters:number;engine_hours:number;notes:string|null;status:string};
+type EquipmentHour={id:string;shift_id:string;equipment_id:string;operator_id:string|null;start_hours:number;end_hours:number;worked_hours:number;notes:string|null;status:string};
 const panel:React.CSSProperties={background:'#111515',border:'1px solid #252d2d',borderRadius:14,padding:20,marginBottom:18};
 const input:React.CSSProperties={background:'#0b1010',color:'#f5f5f0',border:'1px solid #303939',borderRadius:9,padding:'10px 12px'};
 const label:React.CSSProperties={display:'grid',gap:7,color:'#aeb9b6',fontSize:12};
@@ -28,10 +30,10 @@ const localDate=(value:string)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/
 export default function ReportsPage(){
  const db=useMemo(()=>createClient(),[]);
  const [shifts,setShifts]=useState<Shift[]>([]);const [equipment,setEquipment]=useState<Equipment[]>([]);const [employees,setEmployees]=useState<Employee[]>([]);const [areas,setAreas]=useState<Area[]>([]);const [blocks,setBlocks]=useState<Block[]>([]);const [faces,setFaces]=useState<Face[]>([]);
- const [works,setWorks]=useState<Work[]>([]);const [production,setProduction]=useState<Production[]>([]);const [hauls,setHauls]=useState<Haul[]>([]);const [maintenance,setMaintenance]=useState<Maintenance[]>([]);const [plans,setPlans]=useState<Plan[]>([]);
+ const [works,setWorks]=useState<Work[]>([]);const [production,setProduction]=useState<Production[]>([]);const [hauls,setHauls]=useState<Haul[]>([]);const [maintenance,setMaintenance]=useState<Maintenance[]>([]);const [plans,setPlans]=useState<Plan[]>([]);const [drills,setDrills]=useState<Drill[]>([]);const [equipmentHours,setEquipmentHours]=useState<EquipmentHour[]>([]);
  const [from,setFrom]=useState(()=>today().slice(0,8)+'01');const [to,setTo]=useState(today());const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [exporting,setExporting]=useState(false);
  const load=useCallback(async()=>{setLoading(true);setError('');if(!db){setError('Supabase тохиргоо олдсонгүй.');setLoading(false);return;}
-  const [s,e,emp,a,b,f,w,p,h,m,pl]=await Promise.all([
+  const [s,e,emp,a,b,f,w,p,h,m,pl,d,eh]=await Promise.all([
    db.from('shifts').select('id,shift_date,shift_kind,starts_at,ends_at').order('shift_date',{ascending:false}).limit(3000),
    db.from('equipment').select('id,equipment_code').order('equipment_code'),
    db.from('employees').select('id,full_name').order('full_name'),
@@ -42,10 +44,12 @@ export default function ReportsPage(){
    db.from('production_records').select('id,shift_id,block_id,face_id,material,volume_m3,measured_at,status').order('measured_at',{ascending:false}).limit(5000),
    db.from('haul_records').select('id,shift_id,equipment_id,material,source_face_id,destination_name,trip_count,departed_at,arrived_at,status').order('departed_at',{ascending:false}).limit(5000),
    db.from('maintenance_orders').select('id,equipment_id,reported_at,fault_category,description,repair_started_at,repair_finished_at,returned_at,status').order('reported_at',{ascending:false}).limit(5000),
-   db.from('plan_records').select('id,plan_date,shift_kind,area_id,block_id,material,planned_volume_m3').order('plan_date',{ascending:false}).limit(5000)
+   db.from('plan_records').select('id,plan_date,shift_kind,area_id,block_id,material,planned_volume_m3').order('plan_date',{ascending:false}).limit(5000),
+   db.from('drill_records').select('id,shift_id,equipment_id,operator_id,block_id,face_id,drilled_holes,drilled_meters,engine_hours,notes,status').limit(5000),
+   db.from('equipment_hour_records').select('id,shift_id,equipment_id,operator_id,start_hours,end_hours,worked_hours,notes,status').limit(5000)
   ]);
-  const err=s.error||e.error||emp.error||a.error||b.error||f.error||w.error||p.error||h.error||m.error||pl.error;
-  if(err)setError(err.message);else{setShifts((s.data||[]) as Shift[]);setEquipment((e.data||[]) as Equipment[]);setEmployees((emp.data||[]) as Employee[]);setAreas((a.data||[]) as Area[]);setBlocks((b.data||[]) as Block[]);setFaces((f.data||[]) as Face[]);setWorks((w.data||[]) as Work[]);setProduction((p.data||[]) as Production[]);setHauls((h.data||[]) as Haul[]);setMaintenance((m.data||[]) as Maintenance[]);setPlans((pl.data||[]) as Plan[]);}
+  const err=s.error||e.error||emp.error||a.error||b.error||f.error||w.error||p.error||h.error||m.error||pl.error||d.error||eh.error;
+  if(err)setError(err.message);else{setShifts((s.data||[]) as Shift[]);setEquipment((e.data||[]) as Equipment[]);setEmployees((emp.data||[]) as Employee[]);setAreas((a.data||[]) as Area[]);setBlocks((b.data||[]) as Block[]);setFaces((f.data||[]) as Face[]);setWorks((w.data||[]) as Work[]);setProduction((p.data||[]) as Production[]);setHauls((h.data||[]) as Haul[]);setMaintenance((m.data||[]) as Maintenance[]);setPlans((pl.data||[]) as Plan[]);setDrills((d.data||[]) as Drill[]);setEquipmentHours((eh.data||[]) as EquipmentHour[]);}
   setLoading(false);
  },[db]);
  useEffect(()=>{void load();},[load]);
@@ -58,8 +62,10 @@ export default function ReportsPage(){
  const haulRows=hauls.filter(x=>x.status!=='voided'&&inTimestampRange(x.departed_at));
  const maintenanceRows=maintenance.filter(x=>x.status!=='voided'&&inTimestampRange(x.reported_at));
  const planRows=plans.filter(x=>inRange(x.plan_date));
+ const drillRows=drills.filter(x=>x.status!=='voided'&&inRange(shiftMap.get(x.shift_id)?.shift_date||''));
+ const equipmentHourRows=equipmentHours.filter(x=>x.status!=='voided'&&inRange(shiftMap.get(x.shift_id)?.shift_date||''));
  const planActual=new Map<string,number>();for(const p of productionRows){const s=shiftMap.get(p.shift_id);if(!s||!p.block_id)continue;const k=[s.shift_date,s.shift_kind,p.block_id,p.material].join('|');planActual.set(k,(planActual.get(k)||0)+Number(p.volume_m3||0));}
- const totalVolume=productionRows.reduce((n,x)=>n+Number(x.volume_m3||0),0);const totalTrips=haulRows.reduce((n,x)=>n+Number(x.trip_count||0),0);
+ const totalVolume=productionRows.reduce((n,x)=>n+Number(x.volume_m3||0),0);const totalTrips=haulRows.reduce((n,x)=>n+Number(x.trip_count||0),0);const totalDrilledMeters=drillRows.reduce((n,x)=>n+Number(x.drilled_meters||0),0);const totalDrilledHoles=drillRows.reduce((n,x)=>n+Number(x.drilled_holes||0),0);const totalEquipmentHours=equipmentHourRows.reduce((n,x)=>n+Number(x.worked_hours||0),0);
  const totalPlan=planRows.reduce((n,x)=>n+Number(x.planned_volume_m3||0),0);const totalPlanActual=planRows.reduce((n,x)=>{const k=[x.plan_date,x.shift_kind,x.block_id||'',x.material].join('|');return n+(planActual.get(k)||0);},0);
  const number=(v:number)=>Number(v||0).toLocaleString('mn-MN',{maximumFractionDigits:2});
  async function exportExcel(){setExporting(true);setError('');
@@ -71,9 +77,11 @@ export default function ReportsPage(){
    const haulSheet=haulRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.source_face_id?faceMap.get(r.source_face_id):null;return {Огноо:s?.shift_date||localDate(r.departed_at),Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id)||'',Материал:materialName(r.material),Ачилтын_мөргөцөг:face?.face_code||'',Буулгах_цэг:r.destination_name,Рейс:Number(r.trip_count),Гарсан_цаг:fmt(r.departed_at),Ирсэн_цаг:fmt(r.arrived_at),Төлөв:r.status};});
    const maintenanceSheet=maintenanceRows.map(r=>({Техник:equipMap.get(r.equipment_id)||'',Мэдээлсэн:fmt(r.reported_at),Эвдрэлийн_төрөл:r.fault_category,Тайлбар:r.description,Засвар_эхэлсэн:fmt(r.repair_started_at),Засвар_дууссан:fmt(r.repair_finished_at),Ашиглалтад_буцаасан:fmt(r.returned_at),Төлөв:r.status}));
    const planSheet=planRows.map(r=>{const actual=planActual.get([r.plan_date,r.shift_kind,r.block_id||'',r.material].join('|'))||0;return {Огноо:r.plan_date,Ээлж:shiftName(r.shift_kind),Талбай:areaMap.get(r.area_id||'')||'',Блок:blockMap.get(r.block_id||'')||'',Материал:materialName(r.material),Төлөвлөсөн_м3:Number(r.planned_volume_m3),Бодит_м3:actual,Зөрүү_м3:Number(r.planned_volume_m3)-actual,Биелэлт_хувь:Number(r.planned_volume_m3)>0?Number((actual/Number(r.planned_volume_m3)*100).toFixed(1)):0};});
-   const summary=[{Үзүүлэлт:'Олборлолт',Нийт:totalVolume,Нэгж:'м³'},{Үзүүлэлт:'Тээвэрлэлт',Нийт:totalTrips,Нэгж:'рейс'},{Үзүүлэлт:'Төлөвлөгөө',Нийт:totalPlan,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний бодит гүйцэтгэл',Нийт:totalPlanActual,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний биелэлт',Нийт:totalPlan?Number((totalPlanActual/totalPlan*100).toFixed(1)):0,Нэгж:'%'},{Үзүүлэлт:'Уулын ажлын бүртгэл',Нийт:workRows.length,Нэгж:'бүртгэл'},{Үзүүлэлт:'Засварын бүртгэл',Нийт:maintenanceRows.length,Нэгж:'бүртгэл'}];
+   const summary=[{Үзүүлэлт:'Олборлолт',Нийт:totalVolume,Нэгж:'м³'},{Үзүүлэлт:'Тээвэрлэлт',Нийт:totalTrips,Нэгж:'рейс'},{Үзүүлэлт:'Өрөмдсөн тууш метр',Нийт:totalDrilledMeters,Нэгж:'м'},{Үзүүлэлт:'Өрөмдсөн цооног',Нийт:totalDrilledHoles,Нэгж:'цооног'},{Үзүүлэлт:'Техникийн ажилласан мото цаг',Нийт:totalEquipmentHours,Нэгж:'цаг'},{Үзүүлэлт:'Төлөвлөгөө',Нийт:totalPlan,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний бодит гүйцэтгэл',Нийт:totalPlanActual,Нэгж:'м³'},{Үзүүлэлт:'Төлөвлөгөөний биелэлт',Нийт:totalPlan?Number((totalPlanActual/totalPlan*100).toFixed(1)):0,Нэгж:'%'},{Үзүүлэлт:'Уулын ажлын бүртгэл',Нийт:workRows.length,Нэгж:'бүртгэл'},{Үзүүлэлт:'Засварын бүртгэл',Нийт:maintenanceRows.length,Нэгж:'бүртгэл'}];
    const add=(name:string,rows:object[])=>{const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Мэдээлэл:'Сонгосон хугацаанд бүртгэл алга'}]);ws['!cols']=Object.keys(rows[0]||{Мэдээлэл:''}).map(k=>({wch:Math.min(32,Math.max(14,k.length+4))}));XLSX.utils.book_append_sheet(wb,ws,name);};
-   add('Тойм',summary);add('Ээлж',shiftRows);add('Уулын ажил',workSheet);add('Олборлолт',productionSheet);add('Тээвэрлэлт',haulSheet);add('Засвар',maintenanceSheet);add('Төлөвлөгөө',planSheet);
+   const drillingSheet=drillRows.map(r=>{const s=shiftMap.get(r.shift_id);const face=r.face_id?faceMap.get(r.face_id):null;return {Огноо:s?.shift_date||'',Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id)||'',Оператор:empMap.get(r.operator_id||'')||'',Блок:blockMap.get(r.block_id||'')||'',Мөргөцөг:face?.face_code||'',Цооног:Number(r.drilled_holes||0),Тууш_метр:Number(r.drilled_meters||0),Өрмийн_мото_цаг:Number(r.engine_hours||0),Тайлбар:r.notes||'',Төлөв:r.status};});
+   const equipmentHoursSheet=equipmentHourRows.map(r=>{const s=shiftMap.get(r.shift_id);return {Огноо:s?.shift_date||'',Ээлж:s?shiftName(s.shift_kind):'',Техник:equipMap.get(r.equipment_id)||'',Оператор:empMap.get(r.operator_id||'')||'',Эхний_заалт:Number(r.start_hours||0),Эцсийн_заалт:Number(r.end_hours||0),Ажилласан_цаг:Number(r.worked_hours||0),Тайлбар:r.notes||'',Төлөв:r.status};});
+   add('Тойм',summary);add('Ээлж',shiftRows);add('Уулын ажил',workSheet);add('Олборлолт',productionSheet);add('Тээвэрлэлт',haulSheet);add('Засвар',maintenanceSheet);add('Төлөвлөгөө',planSheet);add('Өрөмдлөг',drillingSheet);add('Мото цаг',equipmentHoursSheet);
    XLSX.writeFile(wb,'MINE_CONTROL_Tailan_'+from+'_to_'+to+'.xlsx');
   }catch(e){setError(e instanceof Error?e.message:'Excel файл үүсгэхэд алдаа гарлаа.');}
   setExporting(false);
