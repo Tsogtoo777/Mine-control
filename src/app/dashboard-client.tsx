@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  Activity, ArrowDownRight, ArrowUpRight, Boxes, CalendarDays, ChevronDown,
+  Activity, ArrowDownRight, ArrowUpRight, Boxes, CalendarDays, ChevronDown, Drill,
   ClipboardList, FileSpreadsheet, Gauge, LayoutDashboard, Map, Mountain,
   Settings, Truck, Wrench, Users, Menu, Search, Bell, Plus, Download,
   CircleDot, Clock3, Layers3, Pickaxe, ShieldCheck
@@ -17,6 +17,7 @@ const nav = [
   { label: 'Блок, мөргөцөг', icon: Map },
   { label: 'Ээлжийн бүртгэл', icon: CalendarDays, group: 'ҮЙЛ АЖИЛЛАГАА' },
   { label: 'Техникийн бүртгэл', icon: Gauge },
+  { label: 'Өрөмдлөг ба мото цаг', icon: Drill },
   { label: 'Засвар үйлчилгээ', icon: Wrench },
   { label: 'Ажилтнууд', icon: Users },
   { label: 'Төлөвлөгөө, гүйцэтгэл', icon: Activity, group: 'УДИРДЛАГА' },
@@ -82,7 +83,7 @@ export default function DashboardClient() {
             const Icon = item.icon;
             return <div key={item.label}>
               {item.group && <div className="nav-group">{item.group}</div>}
-              <button className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => {if(item.label === 'Ажилтнууд'){window.location.href='/employees';return;}if(item.label === 'Техникийн бүртгэл'){window.location.href='/equipment';return;}if(item.label === 'Блок, мөргөцөг'){window.location.href='/mine-areas';return;}if(item.label === 'Ээлжийн бүртгэл'){window.location.href='/shifts';return;}if(item.label === 'Уулын ажлын бүртгэл'){window.location.href='/work-records';return;}if(item.label === 'Олборлолтын бүртгэл'){window.location.href='/production';return;}if(item.label === 'Тээвэрлэлтийн бүртгэл'){window.location.href='/haul-records';return;}if(item.label === 'Засвар үйлчилгээ'){window.location.href='/maintenance';return;}if(item.label === 'Төлөвлөгөө, гүйцэтгэл'){window.location.href='/plan-performance';return;}if(item.label === 'Тайлан, Excel'){window.location.href='/reports';return;}setActive(item.label);setMobileOpen(false);}}>
+              <button className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => {if(item.label === 'Ажилтнууд'){window.location.href='/employees';return;}if(item.label === 'Техникийн бүртгэл'){window.location.href='/equipment';return;}if(item.label === 'Өрөмдлөг ба мото цаг'){window.location.href='/drilling';return;}if(item.label === 'Блок, мөргөцөг'){window.location.href='/mine-areas';return;}if(item.label === 'Ээлжийн бүртгэл'){window.location.href='/shifts';return;}if(item.label === 'Уулын ажлын бүртгэл'){window.location.href='/work-records';return;}if(item.label === 'Олборлолтын бүртгэл'){window.location.href='/production';return;}if(item.label === 'Тээвэрлэлтийн бүртгэл'){window.location.href='/haul-records';return;}if(item.label === 'Засвар үйлчилгээ'){window.location.href='/maintenance';return;}if(item.label === 'Төлөвлөгөө, гүйцэтгэл'){window.location.href='/plan-performance';return;}if(item.label === 'Тайлан, Excel'){window.location.href='/reports';return;}setActive(item.label);setMobileOpen(false);}}>
                 <Icon size={17}/><span>{item.label}</span>
                 {item.label === 'Тайлан, Excel' && <span className="nav-tag">XLS</span>}
               </button>
