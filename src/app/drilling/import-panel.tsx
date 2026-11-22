@@ -7,7 +7,7 @@ import { FileSpreadsheet, Upload, Download, RefreshCw } from 'lucide-react';
 
 type Shift = { id: string; shift_date: string; shift_kind: 'day' | 'night' };
 type Equipment = { id: string; equipment_code: string };
-type Employee = { id: string; employee_code: string | null; full_name: string };
+type Employee = { id: string; employee_code?: string | null; full_name: string };
 type Block = { id: string; block_code: string };
 type Face = { id: string; block_id: string; face_code: string };
 type Parsed = {
