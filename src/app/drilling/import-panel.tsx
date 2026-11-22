@@ -3,7 +3,7 @@
 import { ChangeEvent, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { createClient } from '@/lib/supabase/client';
-import { FileSpreadsheet, Upload, Download, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, Upload, Download } from 'lucide-react';
 
 type Shift = { id: string; shift_date: string; shift_kind: 'day' | 'night' };
 type Equipment = { id: string; equipment_code: string };
@@ -27,8 +27,25 @@ const headers = {
 };
 function template() {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers.drill]), 'Өрмийн бүтээл');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers.hours]), 'Мото цаг');
+  const drillSheet = XLSX.utils.aoa_to_sheet([headers.drill]);
+  const hoursSheet = XLSX.utils.aoa_to_sheet([headers.hours]);
+
+  // Keep headings readable and make the header stay visible while scrolling.
+  drillSheet['!cols'] = [
+    { wch: 22 }, { wch: 19 }, { wch: 18 }, { wch: 34 }, { wch: 18 },
+    { wch: 20 }, { wch: 16 }, { wch: 23 }, { wch: 19 }, { wch: 32 },
+  ];
+  hoursSheet['!cols'] = [
+    { wch: 22 }, { wch: 19 }, { wch: 18 }, { wch: 34 },
+    { wch: 20 }, { wch: 20 }, { wch: 32 },
+  ];
+  drillSheet['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
+  hoursSheet['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft', state: 'frozen' };
+  drillSheet['!autofilter'] = { ref: 'A1:J1' };
+  hoursSheet['!autofilter'] = { ref: 'A1:G1' };
+
+  XLSX.utils.book_append_sheet(wb, drillSheet, 'Өрмийн бүтээл');
+  XLSX.utils.book_append_sheet(wb, hoursSheet, 'Мото цаг');
   XLSX.writeFile(wb, 'MINE_CONTROL_Өрөмдлөг_МотоЦаг_загвар.xlsx');
 }
 function parseSheet(wb: XLSX.WorkBook, name: string, kind: 'drill' | 'hours'): Parsed[] {
@@ -52,7 +69,7 @@ function parseSheet(wb: XLSX.WorkBook, name: string, kind: 'drill' | 'hours'): P
       notes: str(c[kind === 'drill' ? 9 : 6]),
     };
     let issue = '';
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(base.shift_date)) issue = 'Ээлжийн огноо YYYY-MM-DD байх ёстой';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(base.shift_date)) issue = 'Ээлжийн огноо YYYY-MM-DD байх ёстой';
     else if (!shiftRaw || !['өдөр', 'шөнө', 'day', 'night'].includes(shiftRaw)) issue = 'Ээлж Өдөр эсвэл Шөнө байх ёстой';
     else if (!base.equipment_code) issue = 'Техникийн код дутуу';
     else if (kind === 'drill' && [base.drilled_holes, base.drilled_meters, base.engine_hours].some(x => !Number.isFinite(x) || x < 0)) issue = 'Өрмийн тоон утга буруу';
