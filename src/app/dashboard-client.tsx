@@ -33,7 +33,7 @@ const kpis = [
   { label: 'Баталгаажсан бүртгэл', value: '—', unit: 'мөр', change: 'Өнөөдрийн бүртгэл', icon: ShieldCheck, tone: 'purple' },
 ];
 
-type Rec={id:string;shift_id:string;volume_m3?:number|null;trip_count?:number|null;volume_m3?:number|null;status:string;measured_at?:string;started_at?:string;departed_at?:string;material?:string};
+type Rec={id:string;shift_id:string;volume_m3?:number|null;trip_count?:number|null;status:string;measured_at?:string;started_at?:string;departed_at?:string;material?:string};
 type ShiftRow={id:string;shift_date:string;shift_kind:'day'|'night';starts_at:string;ends_at:string};
 const localDay=(d:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
 const nfmt=(n:number)=>Number(n||0).toLocaleString('mn-MN',{maximumFractionDigits:1});
