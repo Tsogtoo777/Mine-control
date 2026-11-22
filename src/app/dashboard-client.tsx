@@ -117,7 +117,7 @@ export default function DashboardClient() {
             </article>
             <article className="panel shift-panel">
               <div className="panel-heading"><div><h2>Ээлжийн мэдээлэл</h2><p>Өдөр / Шөнийн ээлж</p></div><CalendarDays size={18} className="muted"/></div>
-              {(["day","night"] as const).map(kind=>{const row=[...shifts].reverse().find(s=>s.shift_kind===kind);return <div className="shift-card" key={kind}><div className="shift-time"><span>{kind==="day"?"ӨДРИЙН ЭЭЛЖ":"ШӨНИЙН ЭЭЛЖ"}</span><b>{kind==="day"?"07:00 — 19:00":"19:00 — 07:00"}</b></div><div className="shift-state">{row?row.shift_date+" · Ээлж бүртгэгдсэн":"Ээлжийн бүртгэл алга"}</div></div>;})
+              {(["day","night"] as const).map(kind=>{const row=[...shifts].reverse().find(s=>s.shift_kind===kind);return <div className="shift-card" key={kind}><div className="shift-time"><span>{kind==="day"?"ӨДРИЙН ЭЭЛЖ":"ШӨНИЙН ЭЭЛЖ"}</span><b>{kind==="day"?"07:00 — 19:00":"19:00 — 07:00"}</b></div><div className="shift-state">{row?row.shift_date+" · Ээлж бүртгэгдсэн":"Ээлжийн бүртгэл алга"}</div></div>;})}
               <div className="shift-note"><Clock3 size={15}/> Ээлжийн огноог эхэлсэн өдрөөр тооцно.</div>
             </article>
           </div>
