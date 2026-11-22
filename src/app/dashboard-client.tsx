@@ -48,7 +48,7 @@ export default function DashboardClient() {
             const Icon = item.icon;
             return <div key={item.label}>
               {item.group && <div className="nav-group">{item.group}</div>}
-              <button className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => {if(item.label === 'Ажилтнууд'){window.location.href='/employees';return;}if(item.label === 'Техникийн бүртгэл'){window.location.href='/equipment';return;}if(item.label === 'Блок, мөргөцөг'){window.location.href='/mine-areas';return;}if(item.label === 'Ээлжийн бүртгэл'){window.location.href='/shifts';return;}setActive(item.label);setMobileOpen(false);}}>
+              <button className={`nav-item ${active === item.label ? 'active' : ''}`} onClick={() => {if(item.label === 'Ажилтнууд'){window.location.href='/employees';return;}if(item.label === 'Техникийн бүртгэл'){window.location.href='/equipment';return;}if(item.label === 'Блок, мөргөцөг'){window.location.href='/mine-areas';return;}if(item.label === 'Ээлжийн бүртгэл'){window.location.href='/shifts';return;}if(item.label === 'Уулын ажлын бүртгэл'){window.location.href='/work-records';return;}setActive(item.label);setMobileOpen(false);}}>
                 <Icon size={17}/><span>{item.label}</span>
                 {item.label === 'Тайлан, Excel' && <span className="nav-tag">XLS</span>}
               </button>
