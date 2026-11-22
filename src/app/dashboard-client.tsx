@@ -45,7 +45,7 @@ export default function DashboardClient() {
   const [loadError,setLoadError]=useState('');
   const [production,setProduction]=useState<Rec[]>([]);
   const [hauls,setHauls]=useState<Rec[]>([]);
-  const [works,setWorks]=useState<Rec[]>([]);
+  const [works,setWorks]=useState<Rec[]>([]);const [drills,setDrills]=useState<{id:string;shift_id:string;drilled_meters:number;drilled_holes:number;status:string}[]>([]);const [equipmentHours,setEquipmentHours]=useState<{id:string;shift_id:string;worked_hours:number;status:string}[]>([]);
   const [shifts,setShifts]=useState<ShiftRow[]>([]);
   const [activeEquipment,setActiveEquipment]=useState(0);
   const [displayName,setDisplayName]=useState('Хэрэглэгч');
@@ -58,15 +58,15 @@ export default function DashboardClient() {
     if(cancelled)return;if(eq.error||sr.error){setLoadError((eq.error||sr.error)!.message);setLoading(false);return;}
     setActiveEquipment(eq.count||0);if(profile.data){setDisplayName(profile.data.display_name||auth.data.user?.email?.split('@')[0]||'Хэрэглэгч');setRoleName(profile.data.role||'Системийн хэрэглэгч');}else if(auth.data.user?.email)setDisplayName(auth.data.user.email.split('@')[0]);
     const all=(sr.data||[]) as ShiftRow[];setShifts(all);const chosen=shiftFilter==='all'?all:all.filter(s=>s.shift_kind===shiftFilter);const ids=chosen.map(s=>s.id);
-    if(!ids.length){setProduction([]);setHauls([]);setWorks([]);setLoading(false);return;}
-    const [p,h,w]=await Promise.all([db.from('production_records').select('id,shift_id,volume_m3,status,measured_at,material').in('shift_id',ids).neq('status','voided').order('measured_at',{ascending:false}).limit(500),db.from('haul_records').select('id,shift_id,trip_count,status,departed_at').in('shift_id',ids).neq('status','voided').order('departed_at',{ascending:false}).limit(500),db.from('work_records').select('id,shift_id,volume_m3,status,started_at').in('shift_id',ids).neq('status','voided').order('started_at',{ascending:false}).limit(500)]);
-    if(cancelled)return;const err=p.error||h.error||w.error;if(err)setLoadError(err.message);setProduction((p.data||[]) as Rec[]);setHauls((h.data||[]) as Rec[]);setWorks((w.data||[]) as Rec[]);setLoading(false);
+    if(!ids.length){setProduction([]);setHauls([]);setWorks([]);setDrills([]);setEquipmentHours([]);setLoading(false);return;}
+    const [p,h,w,d,eh]=await Promise.all([db.from('production_records').select('id,shift_id,volume_m3,status,measured_at,material').in('shift_id',ids).neq('status','voided').order('measured_at',{ascending:false}).limit(500),db.from('haul_records').select('id,shift_id,trip_count,status,departed_at').in('shift_id',ids).neq('status','voided').order('departed_at',{ascending:false}).limit(500),db.from('work_records').select('id,shift_id,volume_m3,status,started_at').in('shift_id',ids).neq('status','voided').order('started_at',{ascending:false}).limit(500),db.from('drill_records').select('id,shift_id,drilled_meters,drilled_holes,status').in('shift_id',ids).neq('status','voided').limit(500),db.from('equipment_hour_records').select('id,shift_id,worked_hours,status').in('shift_id',ids).neq('status','voided').limit(500)]);
+    if(cancelled)return;const err=p.error||h.error||w.error||d.error||eh.error;if(err)setLoadError(err.message);setProduction((p.data||[]) as Rec[]);setHauls((h.data||[]) as Rec[]);setWorks((w.data||[]) as Rec[]);setDrills((d.data||[]) as typeof drills);setEquipmentHours((eh.data||[]) as typeof equipmentHours);setLoading(false);
   }void load();return()=>{cancelled=true;};},[period,shiftFilter]);
   const shiftMap=useMemo(()=>new globalThis.Map(shifts.map(s=>[s.id,s])),[shifts]);
   const totalProduction=production.reduce((a,r)=>a+Number(r.volume_m3||0),0);
   const today=localDay(new Date());
   const todayProduction=production.filter(r=>shiftMap.get(r.shift_id)?.shift_date===today).reduce((a,r)=>a+Number(r.volume_m3||0),0);
-  const totalTrips=hauls.reduce((a,r)=>a+Number(r.trip_count||0),0);
+  const totalTrips=hauls.reduce((a,r)=>a+Number(r.trip_count||0),0);const totalDrilledMeters=drills.reduce((a,r)=>a+Number(r.drilled_meters||0),0);const totalDrilledHoles=drills.reduce((a,r)=>a+Number(r.drilled_holes||0),0);const totalMotohours=equipmentHours.reduce((a,r)=>a+Number(r.worked_hours||0),0);
   const approved=[...production,...hauls,...works].filter(r=>r.status==='approved').length;
   const latest=[...production.map(r=>({id:r.id,type:'Олборлолт',date:r.measured_at||'',amount:nfmt(Number(r.volume_m3||0))+' м³',status:r.status,shift:shiftMap.get(r.shift_id)})),...hauls.map(r=>({id:r.id,type:'Тээвэрлэлт',date:r.departed_at||'',amount:nfmt(Number(r.trip_count||0))+' рейс',status:r.status,shift:shiftMap.get(r.shift_id)})),...works.map(r=>({id:r.id,type:'Уулын ажил',date:r.started_at||'',amount:nfmt(Number(r.volume_m3||0))+' м³',status:r.status,shift:shiftMap.get(r.shift_id)}))].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7);
 
@@ -110,6 +110,10 @@ export default function DashboardClient() {
 
           <div className="kpi-grid">{kpis.map((k,i) => {const Icon=k.icon;const value=i===0?nfmt(period==="Өнөөдөр"?todayProduction:totalProduction):i===1?nfmt(totalTrips):i===2?nfmt(activeEquipment):nfmt(approved);const note=i===0?(period==="Өнөөдөр"?"Өнөөдрийн бодит хэмжээ":"Сонгосон хугацааны нийт"):i===1?"Хүчингүй рейс хассан":i===2?"Идэвхтэй техникийн бүртгэл":"Баталгаажсан мөр";return <article className="kpi-card" key={k.label}><div className="kpi-top"><span>{k.label}</span><div className={`kpi-icon ${k.tone}`}><Icon size={18}/></div></div><div className="kpi-value">{loading?"—":value}<small>{k.unit}</small></div><div className="kpi-foot">{note}</div></article>;})}</div>
 
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:14,marginBottom:18}}>
+            <article className="panel" style={{margin:0}}><div className="panel-heading"><div><h2>Өрөмдлөгийн бүтээл</h2><p>Сонгосон ээлжийн нийт</p></div><Drill size={18} className="muted"/></div><div className="kpi-value">{loading?'—':nfmt(totalDrilledMeters)}<small>м</small></div><div className="kpi-foot">{nfmt(totalDrilledHoles)} цооног</div></article>
+            <article className="panel" style={{margin:0}}><div className="panel-heading"><div><h2>Техникийн мото цаг</h2><p>Ажилласан нийт цаг</p></div><Gauge size={18} className="muted"/></div><div className="kpi-value">{loading?'—':nfmt(totalMotohours)}<small>цаг</small></div><div className="kpi-foot">Мото цагийн бүртгэлээс</div></article>
+          </div>
           <div className="section-grid">
             <article className="panel production-panel">
               <div className="panel-heading"><div><h2>Үйлдвэрлэлийн гүйцэтгэл</h2><p>Хүдэр, хөрсний хэмжээ · м³</p></div><button className="select-btn" onClick={() => setPeriod(period === 'Өнөөдөр' ? 'Энэ сар' : 'Өнөөдөр')}>{period}<ChevronDown size={14}/></button></div>
@@ -124,7 +128,7 @@ export default function DashboardClient() {
           </div>
 
           <article className="panel records-panel">
-            <div className="panel-heading"><div><h2>Сүүлийн бүртгэлүүд</h2><p>Уулын ажил, олборлолт, тээвэрлэлтийн бүртгэл</p></div><button className="text-btn">Бүгдийг харах <ArrowUpRight size={14}/></button></div>
+            <div className="panel-heading"><div><h2>Сүүлийн бүртгэлүүд</h2><p>Уулын ажил, олборлолт, тээвэрлэлт, өрөмдлөгийн бүртгэл</p></div><button className="text-btn">Бүгдийг харах <ArrowUpRight size={14}/></button></div>
             <div className="table-wrap"><table><thead><tr><th>БҮРТГЭЛИЙН ТӨРӨЛ</th><th>ОГНОО / ЭЭЛЖ</th><th>ХЭМЖЭЭ</th><th>ТӨЛӨВ</th></tr></thead><tbody>{loading?<tr><td colSpan={4}>Уншиж байна...</td></tr>:latest.length===0?<tr><td colSpan={4}><div className="empty-table"><ClipboardList size={22}/><b>Бүртгэл хараахан үүсээгүй байна</b></div></td></tr>:latest.map(r=><tr key={r.id}><td>{r.type}</td><td>{r.shift?.shift_date||r.date.slice(0,10)} · {r.shift?.shift_kind==="day"?"Өдөр":r.shift?.shift_kind==="night"?"Шөнө":"—"}</td><td>{r.amount}</td><td>{r.status==="approved"?"Баталсан":r.status==="submitted"?"Илгээсэн":r.status==="draft"?"Ноорог":r.status}</td></tr>)}</tbody></table></div>
           </article>
 
