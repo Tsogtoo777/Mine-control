@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Drill, Gauge, Plus, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import DrillingExcelImport from './import-panel';
 
 type Shift={id:string;shift_date:string;shift_kind:'day'|'night'};
 type Equipment={id:string;equipment_code:string};
@@ -66,6 +67,7 @@ export default function DrillingPage(){
  <a href="/" style={{color:'#f4c62f',textDecoration:'none',display:'inline-flex',gap:7,alignItems:'center',fontSize:13,marginBottom:18}}><ArrowLeft size={15}/> Ерөнхий хяналт руу буцах</a>
  <div style={{marginBottom:22}}><div style={{color:'#f4c62f',fontSize:11,fontWeight:800,letterSpacing:1.5}}>ҮЙЛДВЭРЛЭЛИЙН НЭМЭЛТ БҮРТГЭЛ</div><h1 style={{fontSize:28,margin:'8px 0'}}>Өрөмдлөг ба мото цаг</h1><p style={{color:'#899393',fontSize:13,margin:0}}>Өрмийн бүтээл, тууш метр, цооног болон техникийн моточасны заалтыг бүртгэнэ.</p></div>
  {(error||notice)&&<div role="status" style={{marginBottom:16,padding:12,borderRadius:9,border:'1px solid '+(error?'#7f3434':'#376447'),background:error?'#351b1b':'#14251b',color:error?'#ffb5a8':'#a8e6bd',fontSize:13}}>{error||notice}</div>}
+ <DrillingExcelImport shifts={shifts} equipment={equipment} employees={employees} blocks={blocks} faces={faces} onImported={()=>void load()}/>
  <div style={{display:'flex',gap:8,marginBottom:16}}><button onClick={()=>{setTab('drill');setError('');setNotice('');}} style={{...btn,background:tab==='drill'?'#f4c62f':'#202929',color:tab==='drill'?'#171717':'#d7dfdc'}}><Drill size={15} style={{verticalAlign:'middle'}}/> Өрмийн бүтээл</button><button onClick={()=>{setTab('hours');setError('');setNotice('');}} style={{...btn,background:tab==='hours'?'#f4c62f':'#202929',color:tab==='hours'?'#171717':'#d7dfdc'}}><Gauge size={15} style={{verticalAlign:'middle'}}/> Мото цаг</button></div>
  <section style={panel}><h2 style={{fontSize:16,margin:'0 0 16px'}}>{tab==='drill'?'Шинэ өрмийн бүтээл':'Шинэ мото цагийн бүртгэл'}</h2>
  <form onSubmit={tab==='drill'?saveDrill:saveHours} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:13,alignItems:'end'}}>
