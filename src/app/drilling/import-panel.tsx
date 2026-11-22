@@ -69,7 +69,7 @@ function parseSheet(wb: XLSX.WorkBook, name: string, kind: 'drill' | 'hours'): P
       notes: str(c[kind === 'drill' ? 9 : 6]),
     };
     let issue = '';
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(base.shift_date)) issue = 'Ээлжийн огноо YYYY-MM-DD байх ёстой';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(base.shift_date)) issue = 'Ээлжийн огноо YYYY-MM-DD байх ёстой';
     else if (!shiftRaw || !['өдөр', 'шөнө', 'day', 'night'].includes(shiftRaw)) issue = 'Ээлж Өдөр эсвэл Шөнө байх ёстой';
     else if (!base.equipment_code) issue = 'Техникийн код дутуу';
     else if (kind === 'drill' && [base.drilled_holes, base.drilled_meters, base.engine_hours].some(x => !Number.isFinite(x) || x < 0)) issue = 'Өрмийн тоон утга буруу';
